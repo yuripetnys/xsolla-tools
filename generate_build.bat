@@ -1,0 +1,1 @@
+pyinstaller --noconsole --onefile --icon=logo.ico --add-data "assets/fonts/DroidSansMono.ttf;assets/fonts" xsolla_tools_gui.py
