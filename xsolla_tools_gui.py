@@ -1,5 +1,5 @@
 import flet as ft
-import re, sys
+import re, sys, configparser
 from xsolla_tools import generate_keys, generate_qrcode, import_from_steam, delete_game, publish_launcher_build, recalculate_bundle, update_prices
 
 class XsollaTool():
@@ -47,6 +47,19 @@ class StdoutRedirector:
     def flush(self) -> None:
         pass
 sys.stdout = StdoutRedirector()
+
+CONFIG = None
+CONFIG_FN = "xsolla_tools_gui.ini"
+def init_config() -> None:
+    global CONFIG
+    CONFIG = configparser.ConfigParser(CONFIG_FN, default_section="settings")
+
+def get_config(key: str) -> str | None:
+    return CONFIG.get("settings", key, fallback=None)
+
+def set_config(key: str, value: str) -> None:
+    CONFIG.set("settings", key, value)
+    CONFIG.write(CONFIG_FN)
 
 def print_link(text: str, url: str) -> None:
     e = ft.Text(
@@ -263,6 +276,8 @@ def activate_page(content_column, control):
 def main(page: ft.Page):
     global TERMINAL
     TERMINAL = ft.Column(expand=True, auto_scroll=True, scroll=ft.ScrollMode.ALWAYS, alignment=ft.VerticalAlignment.START)
+    
+    init_config()
 
     page.fonts = { "DroidSansMono": "/fonts/DroidSansMono.ttf" }
     page.title = "Xsolla Tools"
@@ -308,11 +323,13 @@ def main(page: ft.Page):
 
     publish_launcher_game_folder_field = ft.TextField(label="Game folder path", disabled=True, expand=3)
     publish_launcher_build_loader_field = ft.TextField(label="build_loader.exe path", disabled=True, expand=3)
+    publish_launcher_build_loader_field.value = get_config("build_loader")
     def publish_launcher_game_folder_file_picker_on_result(e: ft.FilePickerResultEvent) -> None:
         publish_launcher_game_folder_field.value = e.path
         publish_launcher_game_folder_field.update()
     def publish_launcher_build_loader_file_picker_on_result(e: ft.FilePickerResultEvent) -> None:
         if e.files:
+            set_config("build_loader") = e.files[0].path
             publish_launcher_build_loader_field.value = e.files[0].path
             publish_launcher_build_loader_field.update()
     publish_launcher_game_folder_file_picker = ft.FilePicker(on_result=publish_launcher_game_folder_file_picker_on_result)
