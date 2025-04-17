@@ -2,32 +2,67 @@ import flet as ft
 import re, sys
 from xsolla_tools import generate_keys, generate_qrcode, import_from_steam, delete_game, publish_launcher_build, recalculate_bundle, update_prices
 
-
 class XsollaTool():
     def __init__(self):
         pass
 
+TERMINAL = None
 
 class StdoutRedirector:
     progress_bar_regex = r"\[\=*\s*\] % \d{1,3}\.\d{2}"
+    links_regex = r'(https?://[^\s<>"]+|www\.[^\s<>"]+)'
 
-    def __init__(self, output_widget: ft.Column, page):
-        self.output_widget: ft.Column = output_widget
-        self.page = page
+    def __init__(self) -> None:
         self.last_line = ""
 
-    def write(self, text):
+    def write(self, text) -> None:
         if text.strip():
-            if re.match(self.progress_bar_regex, self.last_line) and re.match(self.progress_bar_regex, text):
-                self.output_widget.controls.pop()
             stripped_text = text.strip()
-            self.output_widget.controls.append(ft.Text(stripped_text, color="white", font_family="DroidSansMono"))
+            if re.match(self.progress_bar_regex, self.last_line) and re.match(self.progress_bar_regex, text):
+                TERMINAL.controls.pop()
             self.last_line = stripped_text
-            self.page.update()
-        
 
-    def flush(self):
+            text_e = ft.Text(font_family="DroidSansMono")
+            split_text = re.split(self.links_regex, stripped_text)
+            for t in split_text:
+                if re.match(self.links_regex, t):
+                    text_e.spans.append(ft.TextSpan(
+                        t,
+                        url=t,
+                        style=ft.TextStyle(
+                            decoration=ft.TextDecoration.UNDERLINE,
+                            decoration_color="lightblue",
+                            color="lightblue"
+                        )
+                    ))
+                else:
+                    text_e.spans.append(ft.TextSpan(
+                        t,
+                        style=ft.TextStyle(color="white")
+                    ))
+
+            TERMINAL.controls.append(text_e)
+            TERMINAL.update()
+
+    def flush(self) -> None:
         pass
+sys.stdout = StdoutRedirector()
+
+def print_link(text: str, url: str) -> None:
+    e = ft.Text(
+        spans=[ft.TextSpan(
+            text,
+            url=url,
+            style=ft.TextStyle(
+                decoration=ft.TextDecoration.UNDERLINE,
+                decoration_color="lightblue",
+                color="lightblue",
+                font_family="DroidSansMono")
+            )
+        ],
+    )
+    TERMINAL.controls.append(e)
+    TERMINAL.update()
 
 def import_from_steam_modal_confirm(page, modal, api_key, project_id, steam_app_ids):
     page.close(modal)
@@ -226,6 +261,9 @@ def activate_page(content_column, control):
     content_column.update()
 
 def main(page: ft.Page):
+    global TERMINAL
+    TERMINAL = ft.Column(expand=True, auto_scroll=True, scroll=ft.ScrollMode.ALWAYS, alignment=ft.VerticalAlignment.START)
+
     page.fonts = { "DroidSansMono": "/fonts/DroidSansMono.ttf" }
     page.title = "Xsolla Tools"
     page.vertical_alignment = ft.MainAxisAlignment.START
@@ -342,7 +380,7 @@ def main(page: ft.Page):
 
     test_terminal_column = ft.Column([
         ft.Text("Delete game"),
-        ft.Button(text="Test Terminal", on_click=lambda e: print(f"Testing..."))
+        ft.Button(text="Test Terminal", on_click=lambda e: print("This is https://Zombo.com"))
     ], expand=True, alignment=ft.MainAxisAlignment.START)
 
     rail = ft.NavigationRail(
@@ -405,16 +443,13 @@ def main(page: ft.Page):
 
     input_column = ft.Column([ import_from_steam_column ], alignment=ft.MainAxisAlignment.START)
 
-    terminal = ft.Column(expand=True, auto_scroll=True, scroll=ft.ScrollMode.ALWAYS, alignment=ft.VerticalAlignment.START)
-    sys.stdout = StdoutRedirector(terminal, page)
-    
     page.add(ft.Row([
         rail,
         ft.VerticalDivider(),
         ft.Column([
             input_column,
             ft.Divider(),
-            ft.Container(terminal, bgcolor="black", padding=10, border_radius=10, expand=True, alignment=ft.alignment.top_left)
+            ft.Container(TERMINAL, bgcolor="black", padding=10, border_radius=10, expand=True, alignment=ft.alignment.top_left)
         ], expand=True)
     ], expand=True))
 
