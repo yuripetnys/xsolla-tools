@@ -329,7 +329,7 @@ def main(page: ft.Page):
         publish_launcher_game_folder_field.update()
     def publish_launcher_build_loader_file_picker_on_result(e: ft.FilePickerResultEvent) -> None:
         if e.files:
-            set_config("build_loader") = e.files[0].path
+            set_config("build_loader", e.files[0].path)
             publish_launcher_build_loader_field.value = e.files[0].path
             publish_launcher_build_loader_field.update()
     publish_launcher_game_folder_file_picker = ft.FilePicker(on_result=publish_launcher_game_folder_file_picker_on_result)
