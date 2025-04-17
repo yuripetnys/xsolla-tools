@@ -1,5 +1,5 @@
 import flet as ft
-import re, sys, configparser
+import re, sys, configparser, os
 from xsolla_tools import generate_keys, generate_qrcode, import_from_steam, delete_game, publish_launcher_build, recalculate_bundle, update_prices
 
 class XsollaTool():
@@ -52,14 +52,22 @@ CONFIG = None
 CONFIG_FN = "xsolla_tools_gui.ini"
 def init_config() -> None:
     global CONFIG
-    CONFIG = configparser.ConfigParser(CONFIG_FN, default_section="settings")
+    CONFIG = configparser.ConfigParser()
+    
+    if os.path.exists(CONFIG_FN):
+        CONFIG.read(CONFIG_FN)
+    else:
+        CONFIG.add_section("settings")
+        with open(CONFIG_FN, mode="w", encoding="utf_8") as f:
+            CONFIG.write(f)
 
 def get_config(key: str) -> str | None:
     return CONFIG.get("settings", key, fallback=None)
 
 def set_config(key: str, value: str) -> None:
     CONFIG.set("settings", key, value)
-    CONFIG.write(CONFIG_FN)
+    with open(CONFIG_FN, mode="w", encoding="utf_8") as f:
+        CONFIG.write(f)
 
 def print_link(text: str, url: str) -> None:
     e = ft.Text(
@@ -337,7 +345,6 @@ def main(page: ft.Page):
     page.overlay.append(publish_launcher_game_folder_file_picker)
     page.overlay.append(publish_launcher_build_loader_file_picker)
     
-
     publish_launcher_build_column = ft.Column([
         ft.Text("Publish build on Launcher", theme_style=ft.TextThemeStyle.TITLE_LARGE),
         ft.Text("Provides a graphical interface for the build_loader.exe utility, publishing new builds on Launcher.", theme_style=ft.TextThemeStyle.LABEL_LARGE),
