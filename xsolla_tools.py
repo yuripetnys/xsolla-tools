@@ -238,11 +238,7 @@ XSOLLA_BLACK = (24,23,27)
 XSOLLA_WHITE = (255,255,255)
 
 def generate_qrcode(project_id, sku, sku_type, fn):
+    URL = f"https://purchase.xsolla.com/pages/buy?type={sku_type}&project_id={project_id}&sku={sku}&ui_settings=eyJ0aGVtZSI6ICJkYXJrIn0"
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H)
-    qr.add_data(f"https://purchase.xsolla.com/pages/buy?type={sku_type}&project_id={project_id}&sku={sku}&ui_settings=eyJ0aGVtZSI6ICJkYXJrIn0")
-    qr.make_image(
-        image_factory=StyledPilImage,
-        color_mask=SolidFillColorMask(
-            front_color=XSOLLA_MAGENTA,
-            back_color=XSOLLA_WHITE),
-        embeded_image_path="logo.png").save(fn)
+    qr.add_data(URL)
+    qr.make_image(image_factory=StyledPilImage,color_mask=SolidFillColorMask(front_color=XSOLLA_MAGENTA,back_color=XSOLLA_WHITE),embeded_image_path="logo.png").save(fn)

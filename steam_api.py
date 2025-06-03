@@ -301,9 +301,11 @@ def retrieve_pricing_per_appid(appid, currency_list=CURRENCIES):
         cc = currency[:2].lower()
         data = _request_from_steam_storeapi(appid, currency=cc)
         if not data:
-            raise Exception(f"Error: no data for game {appid}")
+            #game is not sold in that currency
+            continue
         if data["is_free"]:
-            break
+            print("Game is free - no prices needed")
+            return {}
         if "price_overview" not in data:
             continue
         prices[currency] = data["price_overview"]["initial"] / 100
