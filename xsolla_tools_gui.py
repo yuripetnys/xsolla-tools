@@ -255,7 +255,7 @@ def generate_keys_button_click(page: ft.Page, c: ft.Column, rail: ft.NavigationR
 def generate_qrcode_button_click(page: ft.Page, c: ft.Column, rail: ft.NavigationRail) -> None:
     project_id = c.controls[2].controls[0].value
     sku = c.controls[2].controls[1].value
-    sku_type = c.controls[2].controls[1].value
+    sku_type = c.controls[2].controls[2].value
 
     rail.disabled = True
     c.disabled = True
