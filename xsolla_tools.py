@@ -1,4 +1,4 @@
-import subprocess, qrcode
+import subprocess, qrcode, csv
 from ulid import ULID
 from steam_api import _request_from_steam_storeapi as steam_request, retrieve_pricing_per_appid
 from xsolla_api import XsollaProjectAPI
@@ -242,3 +242,70 @@ def generate_qrcode(project_id, sku, sku_type, fn):
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H)
     qr.add_data(URL)
     qr.make_image(image_factory=StyledPilImage,color_mask=SolidFillColorMask(front_color=XSOLLA_MAGENTA,back_color=XSOLLA_WHITE),embeded_image_path="logo.png").save(fn)
+    
+###################
+
+def export_gamekey_prices_to_csv(api_key: str, project_id: str, fn: str):
+    x = XsollaProjectAPI(api_key, project_id)
+    games = x.get_games()
+    skus_with_prices = [[game, sku] for game in games for sku in game['unit_items'] if len(sku['prices']) > 0]
+    currencies = sorted(list(set([price['currency'] for sku in skus_with_prices for price in sku['prices']])))
+
+    with open(fn, mode="w", encoding="utf_8_sig", newline="") as f:
+        csv_writer = csv.writer(f)
+        csv_writer.writerow(["SKU", "Sub-SKU", "Default"] + currencies)
+
+        for game, sku in skus_with_prices:
+            csv_line = []
+            csv_line.append(game['sku'])
+            csv_line.append(sku['sku'])
+            csv_line.append([p['currency'] for p in sku['prices'] if p['is_default']][0])
+            for c in currencies:
+                p = [p['amount'] for p in sku['prices'] if p['currency'] == c]
+                if len(p) == 1:
+                    csv_line.append(p[0])
+                elif len(p) == 0:
+                    csv_line.append(None)
+                else:
+                    raise Exception("API error: returned two prices for the same currency??")
+            csv_writer.writerow(csv_line)
+
+
+def import_gamekey_prices_from_csv(api_key: str, project_id: str, fn: str):
+    x = XsollaProjectAPI(api_key, project_id)
+    with open(fn, mode="r", encoding="utf_8_sig") as f:
+        csv_reader = csv.reader(f)
+        header = None
+        skus = []
+        for line in csv_reader:
+            if header is None:
+                header = line
+            else:
+                skus.append(line)
+
+    currencies = header[3:]
+    for sku in skus:
+        game_name = sku[0]
+        sku_name = sku[1]
+        print(f"Parsing CSV data for {sku_name}...")
+        default_currency = sku[2]
+        amounts = sku[3:]
+        if len(amounts) != len(currencies):
+            raise Exception(f"Error parsing {sku_name} from {fn}. Number of prices and number of currencies do not match.")
+        
+        new_prices = [{
+                'amount': float(a),
+                'currency': c,
+                'is_default': c == default_currency,
+                'is_active': True
+            } for a, c in zip(amounts, currencies) if a != '']
+
+        print(f"Retrieving data for {sku_name}...")
+        payload = x.get_game_by_sku(game_name)
+        #dumb fixes
+        if "periods" in payload and len(payload["periods"]) == 0:
+            payload.pop("periods")    
+        subsku_payload = [sku for sku in payload['unit_items'] if sku['sku'] == sku_name][0]
+        subsku_payload['prices'] = new_prices
+        print(f"Updating {sku_name} with new prices...")
+        x.update_game_by_sku(game_name, payload)
