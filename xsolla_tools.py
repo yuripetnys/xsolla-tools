@@ -249,7 +249,7 @@ def export_gamekey_prices_to_csv(api_key: str, project_id: str, fn: str):
     x = XsollaProjectAPI(api_key, project_id)
     games = x.get_games()
     skus_with_prices = [[game, sku] for game in games for sku in game['unit_items'] if len(sku['prices']) > 0]
-    currencies = sorted(list(set([price['currency'] for sku in skus_with_prices for price in sku['prices']])))
+    currencies = sorted(list(set([price['currency'] for _, sku in skus_with_prices for price in sku['prices']])))
 
     with open(fn, mode="w", encoding="utf_8_sig", newline="") as f:
         csv_writer = csv.writer(f)
