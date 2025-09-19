@@ -247,10 +247,12 @@ def generate_qrcode(project_id, sku, sku_type, fn):
 
 def export_gamekey_prices_to_csv(api_key: str, project_id: str, fn: str):
     x = XsollaProjectAPI(api_key, project_id)
+    print(f"Getting gamekey price data for project {project_id}...")
     games = x.get_games()
     skus_with_prices = [[game, sku] for game in games for sku in game['unit_items'] if len(sku['prices']) > 0]
     currencies = sorted(list(set([price['currency'] for _, sku in skus_with_prices for price in sku['prices']])))
 
+    print(f"Saving gamekey price data to {fn}...")
     with open(fn, mode="w", encoding="utf_8_sig", newline="") as f:
         csv_writer = csv.writer(f)
         csv_writer.writerow(["SKU", "Sub-SKU", "Default"] + currencies)
@@ -270,9 +272,12 @@ def export_gamekey_prices_to_csv(api_key: str, project_id: str, fn: str):
                     raise Exception("API error: returned two prices for the same currency??")
             csv_writer.writerow(csv_line)
 
+    print(f"Done!")
 
 def import_gamekey_prices_from_csv(api_key: str, project_id: str, fn: str):
     x = XsollaProjectAPI(api_key, project_id)
+
+    print(f"Opening and parsing {fn}...")
     with open(fn, mode="r", encoding="utf_8_sig") as f:
         csv_reader = csv.reader(f)
         header = None
@@ -309,3 +314,5 @@ def import_gamekey_prices_from_csv(api_key: str, project_id: str, fn: str):
         subsku_payload['prices'] = new_prices
         print(f"Updating {sku_name} with new prices...")
         x.update_game_by_sku(game_name, payload)
+
+    print(f"Done!")

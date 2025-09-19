@@ -1,6 +1,6 @@
 import flet as ft
 import re, sys, configparser, os
-from xsolla_tools import generate_keys, generate_qrcode, import_from_steam, delete_game, publish_launcher_build, recalculate_bundle, update_prices
+from xsolla_tools import generate_keys, generate_qrcode, import_from_steam, delete_game, publish_launcher_build, recalculate_bundle, update_prices, export_gamekey_prices_to_csv, import_gamekey_prices_from_csv
 
 class XsollaTool():
     def __init__(self):
@@ -151,7 +151,48 @@ def delete_game_button_click(page: ft.Page, c: ft.Column, rail: ft.NavigationRai
     c.disabled = False
     rail.update()
     c.update()
-    
+
+def export_to_csv_button_click(page: ft.Page, c: ft.Column, rail: ft.NavigationRail) -> None:
+    rail.disabled = True
+    c.disabled = True
+
+    api_key = c.controls[2].value
+    project_id = c.controls[3].value
+
+    def fp_on_result(e: ft.FilePickerResultEvent) -> None:
+        if e.path:
+            export_gamekey_prices_to_csv(api_key, project_id, e.path)
+    fp = ft.FilePicker(on_result=fp_on_result)
+    page.overlay.append(fp)
+    page.update()
+    fp.save_file(dialog_title="Select where you want to save the CSV file", allowed_extensions=["csv"])
+
+    rail.disabled = False
+    c.disabled = False
+    rail.update()
+    c.update()
+
+def import_from_csv_button_click(page: ft.Page, c: ft.Column, rail: ft.NavigationRail) -> None:
+    rail.disabled = True
+    c.disabled = True
+
+    api_key = c.controls[2].value
+    project_id = c.controls[3].value
+
+    def fp_on_result(e: ft.FilePickerResultEvent) -> None:
+        if len(e.files) > 0:
+            import_gamekey_prices_from_csv(api_key, project_id, e.files[0].path)
+    fp = ft.FilePicker(on_result=fp_on_result)
+    page.overlay.append(fp)
+    page.update()
+    fp.pick_files(dialog_title="Select the CSV file whose prices you want to import", allowed_extensions=["csv"], allow_multiple=False)
+
+    rail.disabled = False
+    c.disabled = False
+    rail.update()
+    c.update()
+
+
 def update_prices_button_click(c: ft.Column, rail: ft.NavigationRail) -> None:
     api_key = c.controls[2].value
     project_id = c.controls[3].value
@@ -329,6 +370,18 @@ def main(page: ft.Page):
         ])
     ], expand=True, alignment=ft.MainAxisAlignment.START)
 
+    import_export_gamedata_csv_column = ft.Column([
+        ft.Text("Import/export gamekey prices CSV", theme_style=ft.TextThemeStyle.TITLE_LARGE),
+        ft.Text("Allows you to quickly export the pricing for all gamekeys of a specific project to a CSV, and then import that data back into PA. Somewhat compatible with Steam price export sheets.", theme_style=ft.TextThemeStyle.LABEL_LARGE),
+        api_key_field,
+        project_id_field,
+        ft.Row([
+            ft.Button(text="Export gamekey prices to CSV", on_click=lambda e: export_to_csv_button_click(page, import_export_gamedata_csv_column, rail), expand=1),
+            ft.Button(text="Import gamekey prices from CSV", on_click=lambda e: import_from_csv_button_click(page, import_export_gamedata_csv_column, rail), expand=1)
+        ])
+    ], expand=True, alignment=ft.MainAxisAlignment.START)
+
+
     publish_launcher_game_folder_field = ft.TextField(label="Game folder path", disabled=True, expand=3)
     publish_launcher_build_loader_field = ft.TextField(label="build_loader.exe path", disabled=True, expand=3)
     publish_launcher_build_loader_field.value = get_config("build_loader")
@@ -424,6 +477,12 @@ def main(page: ft.Page):
                 selected_icon=ft.Icons.PRICE_CHANGE_OUTLINED,
                 label="Update prices from Steam",
                 data=update_prices_column
+            ),
+            ft.NavigationRailDestination(
+                icon=ft.Icons.BACKUP_TABLE,
+                selected_icon=ft.Icons.BACKUP_TABLE_OUTLINED,
+                label="Import/export prices from CSV",
+                data=import_export_gamedata_csv_column
             ),
             ft.NavigationRailDestination(
                 icon=ft.Icons.DELETE,
