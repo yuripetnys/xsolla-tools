@@ -514,12 +514,12 @@ def main(page: ft.Page):
                 label="Generate PayStation QR",
                 data=generate_qrcode_column
             ),
-            ft.NavigationRailDestination(
-                icon=ft.Icons.VPN_KEY,
-                selected_icon=ft.Icons.VPN_KEY_OUTLINED,
-                label="Test terminal",
-                data=test_terminal_column
-            ),
+            # ft.NavigationRailDestination(
+            #     icon=ft.Icons.VPN_KEY,
+            #     selected_icon=ft.Icons.VPN_KEY_OUTLINED,
+            #     label="Test terminal",
+            #     data=test_terminal_column
+            # ),
         ],
         on_change=lambda e: activate_page(input_column, e.control),
     )

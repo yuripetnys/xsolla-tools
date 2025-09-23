@@ -35,7 +35,7 @@ class XsollaProjectAPI:
             query = {"offset": len(games)}
             response = requests.get(url, params=query, auth=self.auth)
             json_data = response.json()
-            has_more = json_data["has_more"]
+            has_more = "has_more" in json_data and json_data["has_more"]
             games.extend(json_data["items"])
 
         return games

@@ -306,7 +306,13 @@ def import_gamekey_prices_from_csv(api_key: str, project_id: str, fn: str):
             } for a, c in zip(amounts, currencies) if a != '']
 
         print(f"Retrieving data for {sku_name}...")
-        payload = x.get_game_by_sku(game_name)
+        
+        try:
+            payload = x.get_game_by_sku(game_name)
+        except Exception as e:
+            print(str(e))
+            return
+        
         #dumb fixes
         if "periods" in payload and len(payload["periods"]) == 0:
             payload.pop("periods")    
